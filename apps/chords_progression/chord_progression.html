@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>和弦走向训练器（高级版）</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+      margin: 0;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #333;
+    }
+    h1 {
+      font-size: 4em;
+      margin-bottom: 40px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      padding: 50px;
+      width: 90%;
+      max-width: 1000px;
+      text-align: center;
+      transition: all 0.3s ease;
+      min-height: 300px;
+    }
+    .progression {
+      font-size: 3em;
+      color: #0077cc;
+      margin-bottom: 20px;
+      min-height: 2em;
+    }
+    .style-tag {
+      font-size: 1.2em;
+      background: #eee;
+      display: inline-block;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      color: #555;
+      padding: 5px 12px;
+      border-radius: 10px;
+    }
+    .chords {
+      font-size: 2.8em;
+      color: #e63946;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      min-height: 2em;
+    }
+    .visible {
+      opacity: 1 !important;
+    }
+    .controls {
+      margin-top: 40px;
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    button {
+      font-size: 1.8em;
+      padding: 10px 25px;
+      border: none;
+      background: #0077cc;
+      color: white;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    input[type=number] {
+      padding: 10px;
+      font-size: 1.5em;
+      width: 80px;
+      text-align: center;
+    }
+    label {
+      font-size: 1.5em;
+    }
+  </style>
+</head>
+<body>
+  <h1>和弦走向训练器</h1>
+  <div class="card">
+    <div class="progression" id="progression">点击“下一题”开始</div>
+    <div class="style-tag" id="styleTag"></div>
+    <div class="chords" id="chords"></div>
+  </div>
+  <div class="controls">
+    <button onclick="showChords()">显示和弦</button>
+    <button onclick="nextProgression()">下一题</button>
+    <button onclick="toggleAutoPlay()">自动播放</button>
+    <label>
+      间隔秒数:
+      <input type="number" id="intervalInput" value="5" min="1" />
+    </label>
+  </div>
+
+  <script>
+      const data = {
+  "C": [
+    ["I–IV–V–I", ["C", "F", "G", "C"], "流行"],
+    ["ii–V–I", ["Dm7", "G7", "Cmaj7"], "爵士"],
+    ["I–vi–IV–V", ["C", "Am", "F", "G"], "流行"],
+    ["I–bVII–IV", ["C", "Bb", "F"], "模态借用"],
+    ["I–bII7–I", ["C", "Db7", "C"], "替代"],
+    ["I–iii–vi–IV", ["C", "Em", "Am", "F"], "流行"],
+    ["I–IV–V7", ["C", "F", "G7"], "属七和弦"],
+    ["ii7–V7–Imaj7", ["Dm7", "G7", "Cmaj7"], "爵士标准"],
+    ["Imaj7–vi7–ii7–V7", ["Cmaj7", "Am7", "Dm7", "G7"], "爵士循环"],
+    ["Iadd9–IVadd9–Vadd9", ["Cadd9", "Fadd9", "Gadd9"], "现代流行"],
+    ["Isus2–IVsus4–Vsus4", ["Csus2", "Fsus4", "Gsus4"], "悬挂和弦"],
+    ["I6–vi7–ii7–V9", ["C6", "Am7", "Dm7", "G9"], "爵士加色"],
+    ["ii9–V13–Imaj7", ["Dm9", "G13", "Cmaj7"], "扩展色彩"],
+    ["Imaj9–IVmaj7–V7", ["Cmaj9", "Fmaj7", "G7"], "爵士"],
+    ["Imaj7–IVadd9–V11", ["Cmaj7", "Fadd9", "G11"], "现代色彩"],
+    ["I–iii–vi–ii7–V7–I", ["C", "Em", "Am", "Dm7", "G7", "C"], "功能和声长进行"]
+  ],
+  "Am": [
+    ["i–iv–v", ["Am", "Dm", "Em"], "自然小调"],
+    ["iiø7–V7–i", ["Bm7b5", "E7", "Am"], "和声小调"],
+    ["i–VI–III–VII", ["Am", "F", "C", "G"], "流行"],
+    ["i7–iv7–bVII7", ["Am7", "Dm7", "G7"], "爵士"],
+    ["i6–iv–V7", ["Am6", "Dm", "E7"], "古典小调"],
+    ["i–bIImaj7–V7", ["Am", "Bbmaj7", "E7"], "变音"],
+    ["i–iv–bVI–V7", ["Am", "Dm", "F", "E7"], "电影感"],
+    ["iadd9–ivadd9–V7", ["Amadd9", "Dmadd9", "E7"], "现代流行"],
+    ["isus2–ivsus4–Vsus4", ["Asus2", "Dmsus4", "Esus4"], "悬挂和弦"],
+    ["i–bVII–bIII–iv", ["Am", "G", "C", "Dm"], "模态流行"],
+    ["iiø7–V13–i", ["Bm7b5", "E13", "Am"], "扩展色彩"],
+    ["i7–iv7–V9", ["Am7", "Dm7", "E9"], "爵士"],
+    ["i–bVI–bII7–i", ["Am", "F", "Bb7", "Am"], "模态替代"]
+  ],
+"G": [
+  ["I–IV–V", ["G", "C", "D"], "基础"],
+  ["ii–V–I", ["Am7", "D7", "Gmaj7"], "爵士"],
+  ["I–vi–ii–V", ["G", "Em", "Am", "D"], "流行"],
+  ["I–bVII7–I", ["G", "F7", "G"], "爵士替代"],
+  ["I–bVI–bVII–I", ["G", "Eb", "F", "G"], "电影感"],
+  ["I–IV–V7", ["G", "C", "D7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Am7", "D7", "Gmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Gmaj7", "Em7", "Am7", "D7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Gadd9", "Cadd9", "Dadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Gsus2", "Csus4", "Dsus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["G6", "Em7", "Am7", "D9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Am9", "D13", "Gmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Gmaj9", "Cmaj7", "D7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Gmaj7", "Cadd9", "D11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["G", "Bm", "Em", "Am7", "D7", "G"], "功能和声长进行"]
+],
+"D": [
+  ["I–IV–V", ["D", "G", "A"], "基础"],
+  ["ii–V–I", ["Em7", "A7", "Dmaj7"], "爵士"],
+  ["I–vi–IV–V", ["D", "Bm", "G", "A"], "流行"],
+  ["I–bII7–I", ["D", "Eb7", "D"], "替代"],
+  ["I–V/vi–vi", ["D", "E7", "Bm"], "功能调性"],
+  ["I–IV–V7", ["D", "G", "A7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Em7", "A7", "Dmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Dmaj7", "Bm7", "Em7", "A7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Dadd9", "Gadd9", "Aadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Dsus2", "Gsus4", "Asus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["D6", "Bm7", "Em7", "A9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Em9", "A13", "Dmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Dmaj9", "Gmaj7", "A7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Dmaj7", "Gadd9", "A11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["D", "F#m", "Bm", "Em7", "A7", "D"], "功能和声长进行"]
+],
+"A": [
+  ["I–IV–V", ["A", "D", "E"], "基础"],
+  ["ii–V–I", ["Bm7", "E7", "Amaj7"], "爵士"],
+  ["I–vi–ii–V", ["A", "F#m", "Bm", "E"], "流行"],
+  ["I–bVII–IV", ["A", "G", "D"], "模态借用"],
+  ["I–IV–V7", ["A", "D", "E7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Bm7", "E7", "Amaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Amaj7", "F#m7", "Bm7", "E7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Aadd9", "Dadd9", "Eadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Asus2", "Dsus4", "Esus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["A6", "F#m7", "Bm7", "E9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Bm9", "E13", "Amaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Amaj9", "Dmaj7", "E7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Amaj7", "Dadd9", "E11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["A", "C#m", "F#m", "Bm7", "E7", "A"], "功能和声长进行"]
+],
+"E": [
+  ["I–IV–V", ["E", "A", "B"], "基础"],
+  ["ii–V–I", ["F#m7", "B7", "Emaj7"], "爵士"],
+  ["I–bVI–bIII–IV", ["E", "C", "G", "A"], "模态"],
+  ["I–IV–V7", ["E", "A", "B7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["F#m7", "B7", "Emaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Emaj7", "C#m7", "F#m7", "B7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Eadd9", "Aadd9", "Badd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Esus2", "Asus4", "Bsus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["E6", "C#m7", "F#m7", "B9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["F#m9", "B13", "Emaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Emaj9", "Amaj7", "B7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Emaj7", "Aadd9", "B11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["E", "G#m", "C#m", "F#m7", "B7", "E"], "功能和声长进行"]
+],
+"B": [
+  ["I–IV–V", ["B", "E", "F#"], "基础"],
+  ["ii–V–I", ["C#m7", "F#7", "Bmaj7"], "爵士"],
+  ["I–vi–ii–V", ["B", "G#m", "C#m", "F#"], "流行"],
+  ["I–bVII–IV", ["B", "A", "E"], "模态借用"],
+  ["I–IV–V7", ["B", "E", "F#7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["C#m7", "F#7", "Bmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Bmaj7", "G#m7", "C#m7", "F#7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Badd9", "Eadd9", "F#add9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Bsus2", "Esus4", "F#sus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["B6", "G#m7", "C#m7", "F#9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["C#m9", "F#13", "Bmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Bmaj9", "Emaj7", "F#7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Bmaj7", "Eadd9", "F#11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["B", "D#m", "G#m", "C#m7", "F#7", "B"], "功能和声长进行"]
+],
+"F#": [
+  ["I–IV–V", ["F#", "B", "C#"], "基础"],
+  ["ii–V–I", ["G#m7", "C#7", "F#maj7"], "爵士"],
+  ["I–vi–ii–V", ["F#", "D#m", "G#m", "C#"], "流行"],
+  ["I–bVII–IV", ["F#", "E", "B"], "模态借用"],
+  ["I–IV–V7", ["F#", "B", "C#7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["G#m7", "C#7", "F#maj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["F#maj7", "D#m7", "G#m7", "C#7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["F#add9", "Badd9", "C#add9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["F#sus2", "Bsus4", "C#sus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["F#6", "D#m7", "G#m7", "C#9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["G#m9", "C#13", "F#maj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["F#maj9", "Bmaj7", "C#7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["F#maj7", "Badd9", "C#11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["F#", "A#m", "D#m", "G#m7", "C#7", "F#"], "功能和声长进行"]
+],
+"Db": [
+  ["I–IV–V", ["Db", "Gb", "Ab"], "基础"],
+  ["ii–V–I", ["Ebm7", "Ab7", "Dbmaj7"], "爵士"],
+  ["I–vi–ii–V", ["Db", "Bbm", "Ebm", "Ab"], "流行"],
+  ["I–bVII–IV", ["Db", "Cb", "Gb"], "模态借用"],
+  ["I–IV–V7", ["Db", "Gb", "Ab7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Ebm7", "Ab7", "Dbmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Dbmaj7", "Bbm7", "Ebm7", "Ab7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Dbadd9", "Gbadd9", "Abadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Dbsus2", "Gbsus4", "Absus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["Db6", "Bbm7", "Ebm7", "Ab9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Ebm9", "Ab13", "Dbmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Dbmaj9", "Gbmaj7", "Ab7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Dbmaj7", "Gbadd9", "Ab11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["Db", "F", "Bbm", "Ebm7", "Ab7", "Db"], "功能和声长进行"]
+],
+"F": [
+  ["I–IV–V", ["F", "Bb", "C"], "基础"],
+  ["ii–V–I", ["Gm7", "C7", "Fmaj7"], "爵士"],
+  ["I–bVII–IV", ["F", "Eb", "Bb"], "模态借用"],
+  ["I–bII7–I", ["F", "Gb7", "F"], "替代"],
+  ["I–IV–V7", ["F", "Bb", "C7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Gm7", "C7", "Fmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Fmaj7", "Dm7", "Gm7", "C7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Fadd9", "Bbadd9", "Cadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Fsus2", "Bbsus4", "Csus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["F6", "Dm7", "Gm7", "C9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Gm9", "C13", "Fmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Fmaj9", "Bbmaj7", "C7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Fmaj7", "Bbadd9", "C11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["F", "A", "Dm", "Gm7", "C7", "F"], "功能和声长进行"]
+],
+"Bb": [
+  ["I–IV–V", ["Bb", "Eb", "F"], "基础"],
+  ["ii–V–I", ["Cm7", "F7", "Bbmaj7"], "爵士"],
+  ["I–vi–ii–V", ["Bb", "Gm", "Cm", "F"], "流行"],
+  ["I–bVII–IV", ["Bb", "Ab", "Eb"], "模态借用"],
+  ["I–IV–V7", ["Bb", "Eb", "F7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Cm7", "F7", "Bbmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Bbmaj7", "Gm7", "Cm7", "F7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Bbadd9", "Ebadd9", "Fadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Bbsus2", "Ebsus4", "Fsus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["Bb6", "Gm7", "Cm7", "F9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Cm9", "F13", "Bbmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Bbmaj9", "Ebmaj7", "F7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Bbmaj7", "Ebadd9", "F11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["Bb", "D", "Gm", "Cm7", "F7", "Bb"], "功能和声长进行"]
+],
+"Eb": [
+  ["I–IV–V", ["Eb", "Ab", "Bb"], "基础"],
+  ["ii–V–I", ["Fm7", "Bb7", "Ebmaj7"], "爵士"],
+  ["I–bVII–IV", ["Eb", "Db", "Ab"], "模态借用"],
+  ["I–IV–V7", ["Eb", "Ab", "Bb7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Fm7", "Bb7", "Ebmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Ebmaj7", "Cm7", "Fm7", "Bb7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Ebadd9", "Abadd9", "Bbadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Ebsus2", "Absus4", "Bbsus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["Eb6", "Cm7", "Fm7", "Bb9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Fm9", "Bb13", "Ebmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Ebmaj9", "Abmaj7", "Bb7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Ebmaj7", "Abadd9", "Bb11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["Eb", "G", "Cm", "Fm7", "Bb7", "Eb"], "功能和声长进行"]
+],
+"Ab": [
+  ["I–IV–V", ["Ab", "Db", "Eb"], "基础"],
+  ["ii–V–I", ["Bbm7", "Eb7", "Abmaj7"], "爵士"],
+  ["I–vi–ii–V", ["Ab", "Fm", "Bbm", "Eb"], "流行"],
+  ["I–bVII–IV", ["Ab", "Gb", "Db"], "模态借用"],
+  ["I–IV–V7", ["Ab", "Db", "Eb7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Bbm7", "Eb7", "Abmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Abmaj7", "Fm7", "Bbm7", "Eb7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Abadd9", "Dbadd9", "Ebadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Absus2", "Dbsus4", "Ebsus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["Ab6", "Fm7", "Bbm7", "Eb9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Bbm9", "Eb13", "Abmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Abmaj9", "Dbmaj7", "Eb7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Abmaj7", "Dbadd9", "Eb11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["Ab", "C", "Fm", "Bbm7", "Eb7", "Ab"], "功能和声长进行"]
+],
+"Gb": [
+  ["I–IV–V", ["Gb", "Cb", "Db"], "基础"],
+  ["ii–V–I", ["Abm7", "Db7", "Gbmaj7"], "爵士"],
+  ["I–vi–ii–V", ["Gb", "Eb", "Abm", "Db"], "流行"],
+  ["I–bVII–IV", ["Gb", "Fb", "Cb"], "模态借用"],
+  ["I–IV–V7", ["Gb", "Cb", "Db7"], "属七和弦"],
+  ["ii7–V7–Imaj7", ["Abm7", "Db7", "Gbmaj7"], "爵士标准"],
+  ["Imaj7–vi7–ii7–V7", ["Gbmaj7", "Ebm7", "Abm7", "Db7"], "爵士循环"],
+  ["Iadd9–IVadd9–Vadd9", ["Gbadd9", "Cbadd9", "Dbadd9"], "现代流行"],
+  ["Isus2–IVsus4–Vsus4", ["Gbsus2", "Cbsus4", "Dbsus4"], "悬挂和弦"],
+  ["I6–vi7–ii7–V9", ["Gb6", "Ebm7", "Abm7", "Db9"], "爵士加色"],
+  ["ii9–V13–Imaj7", ["Abm9", "Db13", "Gbmaj7"], "扩展色彩"],
+  ["Imaj9–IVmaj7–V7", ["Gbmaj9", "Cbmaj7", "Db7"], "爵士"],
+  ["Imaj7–IVadd9–V11", ["Gbmaj7", "Cbadd9", "Db11"], "现代色彩"],
+  ["I–iii–vi–ii7–V7–I", ["Gb", "Bb", "Ebm", "Abm7", "Db7", "Gb"], "功能和声长进行"]
+],
+"Am": [
+  ["i–iv–v", ["Am", "Dm", "Em"], "基础"],
+  ["iiø7–V7–i", ["Bm7b5", "E7", "Am"], "爵士"],
+  ["i–VI–III–VII", ["Am", "F", "C", "G"], "流行"],
+  ["i–VII–VI", ["Am", "G", "F"], "模态借用"],
+  ["i–iv–V7", ["Am", "Dm", "E7"], "属七和弦"],
+  ["iiø7–V7–imaj7", ["Bm7b5", "E7", "Ammaj7"], "爵士变体"],
+  ["i7–VI7–III7–VII7", ["Am7", "F7", "C7", "G7"], "爵士循环"],
+  ["iadd9–ivadd9–vadd9", ["Amadd9", "Dmadd9", "Emadd9"], "现代流行"],
+  ["isus2–ivsus4–vsus4", ["Asus2", "Dmsus4", "Esus4"], "悬挂和弦"],
+  ["i6–iv7–v7–V9", ["Am6", "Dm7", "Em7", "E9"], "爵士加色"],
+  ["iiø9–V13–i", ["Bm7b9b5", "E13", "Am"], "扩展色彩"],
+  ["imaj9–IVmaj7–V7", ["Ammaj9", "Dmmaj7", "E7"], "爵士"],
+  ["imaj7–ivadd9–V11", ["Ammaj7", "Dmadd9", "E11"], "现代色彩"],
+  ["i–III–VI–iiø7–V7–i", ["Am", "C", "F", "Bm7b5", "E7", "Am"], "功能和声长进行"]
+],
+"Em": [
+  ["i–iv–v", ["Em", "Am", "Bm"], "基础"],
+  ["iiø7–V7–i", ["F#m7b5", "B7", "Em"], "爵士"],
+  ["i–VI–III–VII", ["Em", "C", "G", "D"], "流行"],
+  ["i–VII–VI", ["Em", "D", "C"], "模态借用"],
+  ["i–iv–V7", ["Em", "Am", "B7"], "属七和弦"],
+  ["iiø7–V7–imaj7", ["F#m7b5", "B7", "Emmaj7"], "爵士变体"],
+  ["i7–VI7–III7–VII7", ["Em7", "C7", "G7", "D7"], "爵士循环"],
+  ["iadd9–ivadd9–vadd9", ["Emadd9", "Amadd9", "Bmadd9"], "现代流行"],
+  ["isus2–ivsus4–vsus4", ["Esus2", "Amsus4", "Bsus4"], "悬挂和弦"],
+  ["i6–iv7–v7–V9", ["Em6", "Am7", "Bm7", "B9"], "爵士加色"],
+  ["iiø9–V13–i", ["F#m7b9b5", "B13", "Em"], "扩展色彩"],
+  ["imaj9–IVmaj7–V7", ["Emmaj9", "Ammaj7", "B7"], "爵士"],
+  ["imaj7–ivadd9–V11", ["Emmaj7", "Amadd9", "B11"], "现代色彩"],
+  ["i–III–VI–iiø7–V7–i", ["Em", "G", "C", "F#m7b5", "B7", "Em"], "功能和声长进行"]
+],
+"Dm": [
+  ["i–iv–v", ["Dm", "Gm", "Am"], "基础"],
+  ["iiø7–V7–i", ["Em7b5", "A7", "Dm"], "爵士"],
+  ["i–VI–III–VII", ["Dm", "Bb", "F", "C"], "流行"],
+  ["i–VII–VI", ["Dm", "C", "Bb"], "模态借用"],
+  ["i–iv–V7", ["Dm", "Gm", "A7"], "属七和弦"],
+  ["iiø7–V7–imaj7", ["Em7b5", "A7", "Dmmaj7"], "爵士变体"],
+  ["i7–VI7–III7–VII7", ["Dm7", "Bb7", "F7", "C7"], "爵士循环"],
+  ["iadd9–ivadd9–vadd9", ["Dmadd9", "Gmadd9", "Amadd9"], "现代流行"],
+  ["isus2–ivsus4–vsus4", ["Dmsus2", "Gmsus4", "Asus4"], "悬挂和弦"],
+  ["i6–iv7–v7–V9", ["Dm6", "Gm7", "Am7", "A9"], "爵士加色"],
+  ["iiø9–V13–i", ["Em7b9b5", "A13", "Dm"], "扩展色彩"],
+  ["imaj9–IVmaj7–V7", ["Dmmaj9", "Gmmaj7", "A7"], "爵士"],
+  ["imaj7–ivadd9–V11", ["Dmmaj7", "Gmadd9", "A11"], "现代色彩"],
+  ["i–III–VI–iiø7–V7–i", ["Dm", "F", "Bb", "Em7b5", "A7", "Dm"], "功能和声长进行"]
+]
+};
+
+
+
+    let current = {};
+    let autoPlay = false;
+    let interval = 5;
+    let autoTimer;
+
+    function getRandomKey() {
+      const keys = Object.keys(data);
+      return keys[Math.floor(Math.random() * keys.length)];
+    }
+
+    function nextProgression() {
+      const key = getRandomKey();
+      const progressions = data[key];
+      const selected = progressions[Math.floor(Math.random() * progressions.length)];
+      current = {
+        key,
+        progression: selected[0],
+        chords: selected[1],
+        style: selected[2] || "未分类"
+      };
+      document.getElementById("progression").textContent = key + " 调: " + selected[0];
+      document.getElementById("chords").textContent = current.chords.join(" – ");
+      document.getElementById("chords").classList.remove("visible");
+      document.getElementById("styleTag").textContent = current.style;
+    }
+
+    function showChords() {
+      document.getElementById("chords").classList.add("visible");
+    }
+
+    function toggleAutoPlay() {
+      autoPlay = !autoPlay;
+      const btn = document.querySelector("button[onclick='toggleAutoPlay()']");
+      if (autoPlay) {
+        interval = parseInt(document.getElementById("intervalInput").value) || 5;
+        btn.textContent = "停止播放";
+        autoLoop();
+      } else {
+        clearTimeout(autoTimer);
+        btn.textContent = "自动播放";
+      }
+    }
+
+    function autoLoop() {
+      nextProgression();
+      autoTimer = setTimeout(() => {
+        showChords();
+        autoTimer = setTimeout(autoLoop, interval * 1000);
+      }, interval * 1000);
+    }
+  </script>
+</body>
+</html>
