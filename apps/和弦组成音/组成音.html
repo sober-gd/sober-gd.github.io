@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>和弦组成音记忆</title>
+  <style>
+    html {
+  overflow-y: scroll; /* 防止滚动条出现/消失时页面抖动 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
+
+html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+    :root{
+      --bg:#f6f7f9; --card:#fff; --accent:#1f2937; --muted:#9aa3ad;
+      --btn:#e9eef2; --success:#daf5e9; --danger:#fdecea;
+      --shadow: 0 6px 12px rgba(15,23,42,0.06);
+      --selected-color: #a8d5a2; /* 浅绿色 */
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, "Noto Sans SC", "PingFang SC", "Microsoft Yahei", sans-serif;
+    }
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--accent);}
+    .wrap{max-width:760px; margin:18px auto; padding:12px;}
+    header{background:var(--accent); color:#fff; padding:14px 18px; border-radius:10px; text-align:center; font-size:20px; font-weight:600;}
+    .row{display:flex; gap:12px; align-items:center;}
+    .card{background:var(--card); border-radius:10px; padding:16px; box-shadow:var(--shadow);}
+    .status{
+      display:flex; 
+      gap:12px; 
+      align-items:center; 
+      margin-top:14px; 
+      justify-content:space-between; 
+      flex-wrap:wrap;
+      transition: background-color 0.3s ease;
+    }
+    /* 测试结束状态背景色 */
+    .status.test-ended {
+      background-color: var(--selected-color);
+    }
+    .status .item, .status .modes button {
+      background:#fff; 
+      padding:10px 12px; 
+      border-radius:8px; 
+      box-shadow:var(--shadow);
+      flex-grow:1; 
+      min-width:220px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      height:44px;  /* 统一高度 */
+      font-weight:600;
+      cursor:pointer;
+      user-select:none;
+      transition: background-color 0.3s, color 0.3s;
+      color: black; /* 所有按钮默认黑色字体 */
+      border: none;
+    }
+    .status .item {
+      cursor: default;
+      justify-content: flex-start;
+      font-weight: 500;
+      color: var(--accent);
+      box-shadow: none;
+      background: transparent;
+      flex-grow: 3;
+      min-width: auto;
+      height: auto;
+      padding: 0;
+      user-select: text;
+    }
+    .modes {
+      gap:10px;
+      flex-grow: 0;
+      min-width: 160px;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      box-shadow: none;
+      height: 44px;
+    }
+    .modes button{
+      background:var(--card);
+      color: black;
+      border:none;
+      border-radius:8px;
+    }
+    .modes button.active{
+      background: var(--selected-color);
+      color: black;
+    }
+    .center-card{margin-top:12px; text-align:center;}
+    .chord-name{font-size:36px; font-weight:700;}
+    .chord-root{color:var(--muted); margin-top:6px;}
+    .note-grid{display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:14px;}
+    .note-btn{
+      background:var(--btn); 
+      border:none; 
+      padding:14px 6px; 
+      border-radius:10px; 
+      font-size:18px; 
+      font-weight:600; 
+      box-shadow:0 4px 8px rgba(15,23,42,0.04); 
+      cursor:pointer;
+      user-select:none;
+      transition: background-color 0.2s, outline 0.2s;
+      color: var(--accent);
+    }
+    .note-btn.active{
+      background:#dbeaef; 
+      outline:2px solid #8bc5d6;
+    }
+    .note-btn:active {
+      box-shadow: inset 0 2px 6px rgba(15,23,42,0.2);
+    }
+    .confirm{
+      width:100%; 
+      padding:14px; 
+      border-radius:10px; 
+      border:none; 
+      font-size:16px; 
+      margin-top:12px; 
+      cursor:pointer; 
+      background:#ececec; 
+      color:#6b7280;
+      user-select:none;
+      transition: background-color 0.3s, color 0.3s;
+    }
+    .confirm:hover:not(:disabled){
+      background:#c7d8e7;
+      color:#1f2937;
+    }
+    .confirm:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .info{
+      margin-top:12px; 
+      background:#fff; 
+      padding:12px; 
+      border-radius:10px; 
+      box-shadow:var(--shadow);
+      user-select:none;
+      display: none
+    }
+    .history{
+      margin-top:12px;
+    }
+    .hist-item{
+      padding:8px; 
+      border-radius:8px; 
+      margin-bottom:8px; 
+      font-size:14px;
+      user-select:none;
+    }
+    .hist-item.ok{
+      background:var(--success); 
+      border:1px solid #cfead6;
+    }
+    .hist-item.err{
+      background:var(--danger); 
+      border:1px solid #f4c9c3;
+    }
+    footer{
+      margin-top:18px; 
+      text-align:center; 
+      color:var(--muted); 
+      font-size:12px;
+      user-select:none;
+    }
+    @media (max-width:520px){
+      .note-grid{grid-template-columns:repeat(4,1fr);}
+      .status .item, .status .modes button {min-width:150px;}
+      .modes button {font-size:14px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>和弦组成音练习</header>
+
+    <!-- 状态栏，模式按钮在右 -->
+    <div class="status" id="statusBar">
+      <div class="item card" id="stats">
+        已答题: <span id="answered">0</span> &nbsp;&nbsp;
+        正确: <span id="correct">0</span> &nbsp;&nbsp;
+        错误: <span id="wrong">0</span> &nbsp;&nbsp;
+        准确率: <span id="accuracy">0</span>% &nbsp;&nbsp;
+        倒计时: <span id="timeLeft">60</span>s
+      </div>
+      <div class="modes">
+        <button class="mode-practice active" id="practiceBtn">练习模式</button>
+        <button class="mode-test" id="testBtn">测试模式（60s）</button>
+      </div>
+    </div>
+
+    <div class="card center-card">
+      <div class="chord-name" id="chordDisplay">Cmaj7</div>
+      <div class="chord-root" id="chordRoot">调性: C</div>
+    </div>
+
+    <div class="card" style="margin-top:12px;">
+      <div class="note-grid" id="noteGrid">
+        <!-- 按键由 JS 生成 -->
+      </div>
+
+      <button class="confirm" id="confirmBtn">确认答案</button>
+    </div>
+
+    <div class="info">
+      <div style="margin-top:8px;">已答题 <span id="answered2">0</span> 道，准确率 <span id="accuracy2">0</span>%</div>
+    </div>
+
+    <div class="history card" id="historyWrap">
+      <div style="font-weight:700; margin-bottom:8px;">历史记录（最近）</div>
+      <div id="historyList"><div style="color:#9aa3ad;">暂无记录</div></div>
+    </div>
+
+    <footer>纯 HTML + JS • 可扩展和弦库</footer>
+  </div>
+
+<script>
+const NOTES_SHARP = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const NOTES_FLAT  = ["C","Db","D","Eb","E","F","Gb","G","Ab","A","Bb","B"];
+const UI_NOTES = ["C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B"];
+
+const CHORD_TYPES = {
+  "": [0,4,7],
+  "m": [0,3,7],
+  "aug": [0,4,8],
+  "dim": [0,3,6],
+  "maj7": [0,4,7,11],
+  "m7": [0,3,7,10],
+  "7": [0,4,7,10],
+  "m7b5": [0,3,6,10],
+  "sus2": [0,2,7],
+  "sus4": [0,5,7],
+  "add9": [0,4,7,14],
+  "6": [0,4,7,9],
+  "9": [0,4,7,10,14],
+  "11": [0,4,7,10,14,17],
+  "maj9": [0,4,7,11,14],
+  "13": [0,4,7,10,14,21]
+};
+
+function noteToPc(n){
+  let i = NOTES_SHARP.indexOf(n);
+  if(i>=0) return i;
+  i = NOTES_FLAT.indexOf(n);
+  if(i>=0) return i;
+  return null;
+}
+function mod(n,m){ return ((n % m) + m) % m; }
+
+function chordPcs(root, intervals){
+  const r = noteToPc(root);
+  if(r===null) return [];
+  const pcs = intervals.map(iv => mod(r + iv, 12));
+  return Array.from(new Set(pcs)).sort((a,b)=>a-b);
+}
+
+const chordDB = [];
+for(const root of NOTES_SHARP){
+  for(const [label, iv] of Object.entries(CHORD_TYPES)){
+    chordDB.push({
+      id: root + "_" + label,
+      root,
+      label,
+      name: root + label,
+      pcs: chordPcs(root, iv)
+    });
+  }
+}
+
+const qIndexEl = document.getElementById('qIndex');
+const correctEl = document.getElementById('correct');
+const wrongEl = document.getElementById('wrong');
+const chordDisplay = document.getElementById('chordDisplay');
+const chordRoot = document.getElementById('chordRoot');
+const noteGrid = document.getElementById('noteGrid');
+const confirmBtn = document.getElementById('confirmBtn');
+const practiceBtn = document.getElementById('practiceBtn');
+const testBtn = document.getElementById('testBtn');
+const modeLabel = document.getElementById('modeLabel');
+const timeLeftEl = document.getElementById('timeLeft');
+const accuracyEl = document.getElementById('accuracy');
+const answeredEl = document.getElementById('answered');
+const answeredEl2 = document.getElementById('answered2');
+const accuracyEl2 = document.getElementById('accuracy2');
+const historyList = document.getElementById('historyList');
+const statsDiv = document.getElementById('stats');
+const statusBar = document.getElementById('statusBar');
+
+let mode = 'practice'; // practice | test
+let currentChord = null;
+let selected = new Set();
+let correct = 0, wrong = 0, answered = 0;
+let history = [];
+
+let timer = null;
+let timeLeft = 60;
+let running = false;
+
+function renderNoteButtons(){
+  noteGrid.innerHTML = '';
+  UI_NOTES.forEach(note=>{
+    const btn = document.createElement('button');
+    btn.className = 'note-btn';
+    btn.textContent = note;
+    btn.dataset.note = note;
+    btn.addEventListener('click', ()=> {
+      toggleNote(note, btn);
+    });
+    noteGrid.appendChild(btn);
+  });
+}
+renderNoteButtons();
+
+function toggleNote(note, btn){
+  const pc = noteToPc(note);
+  if(pc===null) return;
+  if(selected.has(pc)){
+    selected.delete(pc);
+    btn.classList.remove('active');
+  } else {
+    selected.add(pc);
+    btn.classList.add('active');
+  }
+}
+
+function randomChord(){
+  return chordDB[Math.floor(Math.random() * chordDB.length)];
+}
+
+function showChord(chord){
+  currentChord = chord;
+  chordDisplay.textContent = chord.name;
+  chordRoot.textContent = '调性: ' + chord.root;
+  selected.clear();
+  document.querySelectorAll('.note-btn').forEach(b => b.classList.remove('active'));
+}
+
+function checkAnswer(){
+  const chosen = Array.from(selected).sort((a,b)=>a-b);
+  const expected = currentChord.pcs.slice().sort((a,b)=>a-b);
+  const correctFlag = chosen.length === expected.length && chosen.every((v,i)=>v===expected[i]);
+
+  history.unshift({ chord: currentChord.name, chosen, expected, ok: correctFlag });
+
+  if(correctFlag) correct++;
+  else wrong++;
+  answered++;
+
+  updateStats();
+  renderHistory();
+
+  if(mode === 'practice'){
+    setTimeout(()=> {
+      showChord(randomChord());
+      selected.clear();
+      document.querySelectorAll('.note-btn').forEach(b => b.classList.remove('active'));
+    }, 600);
+  } else {
+    if(running) showChord(randomChord());
+  }
+}
+
+function updateStats(){
+  correctEl.textContent = correct;
+  wrongEl.textContent = wrong;
+  answeredEl.textContent = answered;
+  answeredEl2.textContent = answered;
+  const total = correct + wrong;
+  const acc = total === 0 ? 0 : Math.round((correct / total) * 100);
+  accuracyEl.textContent = acc;
+  accuracyEl2.textContent = acc;
+  timeLeftEl.textContent = mode === 'test' && running ? timeLeft : 0;
+  statsDiv.innerHTML = `
+    已答题: ${answered} &nbsp;&nbsp;
+    正确: ${correct} &nbsp;&nbsp;
+    错误: ${wrong} &nbsp;&nbsp;
+    准确率: ${acc}% &nbsp;&nbsp;
+    倒计时: ${mode === 'test' && running ? timeLeft : 0}s
+  `;
+  if (!running && mode === 'practice' && history.length > 0) {
+    statusBar.classList.remove('test-ended');
+  }
+}
+
+function renderHistory(){
+  historyList.innerHTML = '';
+  if(history.length === 0){
+    historyList.innerHTML = '<div style="color:#9aa3ad;">暂无记录</div>';
+    return;
+  }
+  const maxShow = 8;
+  history.slice(0, maxShow).forEach(h => {
+    const div = document.createElement('div');
+    div.className = 'hist-item ' + (h.ok ? 'ok' : 'err');
+    const expectedSet = new Set(h.expected);
+    const chosenStr = h.chosen.map(pc => {
+      const note = NOTES_SHARP[pc];
+      const correctMark = expectedSet.has(pc) ? '✔️' : '❌';
+      const color = expectedSet.has(pc) ? '#15803d' : '#b91c1c'; // 绿 / 红
+      return `<span style="margin-right:6px; color:${color};">${note} ${correctMark}</span>`;
+    }).join('');
+    div.innerHTML = `<div style="font-weight:700">${h.chord} — ${h.ok ? '正确' : '错误'}</div>
+                     <div style="font-size:12px; color:#6b7280; margin-top:4px;">
+                       期望音: ${h.expected.map(i => NOTES_SHARP[i]).join(', ')}
+                     </div>
+                     <div style="font-size:12px; color:#444; margin-top:2px;">
+                       你的选择: ${chosenStr || '<em>无</em>'}
+                     </div>`;
+    historyList.appendChild(div);
+  });
+}
+
+function startTest(){
+  mode = 'test';
+  correct = 0; wrong = 0; answered = 0;
+  history = [];
+  timeLeft = 60;
+  running = true;
+  updateStats();
+  renderHistory();
+  showChord(randomChord());
+
+  practiceBtn.classList.remove('active');
+  testBtn.classList.add('active');
+  statusBar.classList.remove('test-ended');
+
+  if(timer) clearInterval(timer);
+  timer = setInterval(() => {
+    timeLeft--;
+    updateStats();
+    if(timeLeft <= 0){
+      clearInterval(timer);
+      running = false;
+      mode = 'practice';
+      practiceBtn.classList.add('active');
+      testBtn.classList.remove('active');
+      updateStats();
+      // 测试结束，状态栏背景变浅绿色
+      statusBar.classList.add('test-ended');
+      confirmBtn.disabled = true;
+    }
+  }, 1000);
+}
+
+function stopTest(){
+  if(timer) { clearInterval(timer); timer = null; }
+  running = false;
+  timeLeft = 0;
+  updateStats();
+  statusBar.classList.remove('test-ended');
+  confirmBtn.disabled = false;
+}
+
+confirmBtn.addEventListener('click', () => {
+  if(mode === 'test' && !running) return;
+  if(!currentChord) return;
+  checkAnswer();
+});
+
+practiceBtn.addEventListener('click', () => {
+  if(mode === 'practice') return;
+  stopTest();
+  mode = 'practice';
+  correct = 0; wrong = 0; answered = 0;
+  history = [];
+  updateStats();
+  renderHistory();
+  showChord(randomChord());
+  practiceBtn.classList.add('active');
+  testBtn.classList.remove('active');
+  confirmBtn.disabled = false;
+  statusBar.classList.remove('test-ended');
+});
+
+testBtn.addEventListener('click', () => {
+  if(mode === 'test') return;
+  confirmBtn.disabled = false;
+  startTest();
+});
+
+function init(){
+  mode = 'practice';
+  correct = 0; wrong = 0; answered = 0;
+  timeLeft = 0;
+  updateStats();
+  history = [];
+  renderHistory();
+  showChord(randomChord());
+  confirmBtn.disabled = false;
+  practiceBtn.classList.add('active');
+  testBtn.classList.remove('active');
+  statusBar.classList.remove('test-ended');
+}
+init();
+</script>
+</body>
+</html>

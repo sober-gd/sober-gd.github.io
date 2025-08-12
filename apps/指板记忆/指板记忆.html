@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>吉他指板记忆</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  html {
+  overflow-y: scroll; /* 防止滚动条出现/消失时页面抖动 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
+
+html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+  body {
+    font-family: Arial, "Microsoft Yahei", sans-serif;
+    background: #e9eef6;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    width: 100%;
+    max-width: 720px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(20,30,60,0.08);
+    padding: 22px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+  h1 { margin: 0 0 12px; font-size: 20px; }
+  .controls {
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .mode-btn {
+    background: linear-gradient(90deg,#108cd3,#3bd6c8); /* 薄荷绿 */
+    color: black;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .mode-btn.history {
+    background: linear-gradient(90deg,#3b5998,#4a69ad);
+    color: white;
+  }
+  .mode-btn:active { transform: translateY(1px); }
+  #question {
+    margin: 16px 0 10px;
+    font-size: 26px;  /* 更大字体 */
+    line-height: 1.6; /* 行距更大 */
+    color:#223;
+  }
+  .timer { font-size: 14px; color: #d9534f; margin-bottom: 10px; }
+  #note-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+  }
+  #note-buttons button {
+    border: none;
+    padding: 8px 4px; /* 按钮更小 */
+    border-radius: 8px;
+    font-weight: 900;
+    font-size: 14px;  /* 字体更小 */
+    color: black;
+    cursor: pointer;
+    min-height: 36px; /* 高度减小 */
+    background: linear-gradient(135deg,#40e0d0,#3bd6c8);
+    box-shadow: 0 4px 10px rgba(40,60,100,0.06);
+    transition: transform .08s ease;
+  }
+  #note-buttons button:hover { transform: translateY(-3px); }
+  #feedback { margin-top: 10px; font-weight: 700; min-height: 26px; }
+  #stats { margin-top: 10px; color:#444; }
+  #next-btn {
+    display: block; margin: 14px auto 0;
+    background: linear-gradient(90deg,#f39c12,#f6b042);
+    color: white; border: none; padding: 8px 12px;
+    border-radius: 8px; cursor: pointer; font-weight: 700;
+    min-height: 36px;
+  }
+  .next-btn-container {
+    height: 60px; /* 固定高度避免跳动 */
+  }
+  #history-list {
+    display: none; /* 默认不显示 */
+    text-align: left;
+    margin-top: 20px;
+    border-top: 1px solid #ddd;
+    padding-top: 10px;
+    font-size: 14px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  #history-list h3 { margin-top:0; }
+  #history-list ul { padding-left: 20px; margin:0; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>🎸 吉他指板记忆训练</h1>
+    <div class="controls">
+      <button class="mode-btn" onclick="startPractice()">练习模式</button>
+      <button class="mode-btn" onclick="startTest(60)">测试模式（60s）</button>
+      <button class="mode-btn history" onclick="toggleHistory()">历史成绩</button>
+    </div>
+    <div id="game-area" style="display:none;">
+      <div id="question"></div>
+      <div id="timer" class="timer"></div>
+      <div id="note-buttons"></div>
+      <div id="feedback"></div>
+      <div id="stats"></div>
+      <div class="next-btn-container">
+        <button id="next-btn" style="display:none" onclick="nextQuestion()">下一题</button>
+      </div>
+    </div>
+    <div id="history-list"></div>
+  </div>
+<script>
+const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
+const openNotesByNumber = [null, "E", "B", "G", "D", "A", "E"];
+
+let mode = "";
+let currentAnswer = "";
+let totalQuestions = 0;
+let correctAnswers = 0;
+let timerInterval = null;
+let timeLeft = 0;
+
+function getRandomPosition() {
+  const stringNum = Math.floor(Math.random() * 6) + 1;
+  const fretNum = Math.floor(Math.random() * 13);
+  const open = openNotesByNumber[stringNum];
+  const startIndex = notes.indexOf(open);
+  const answer = notes[(startIndex + fretNum) % 12];
+  return { questionText: `第 ${stringNum} 弦 第 ${fretNum} 品`, answer };
+}
+
+function renderButtons() {
+  const container = document.getElementById("note-buttons");
+  container.innerHTML = "";
+  notes.forEach((n) => {
+    const b = document.createElement("button");
+    b.textContent = n;
+    b.onclick = () => { checkAnswer(n); };
+    container.appendChild(b);
+  });
+}
+
+function startPractice() {
+  mode = "practice";
+  hideHistory();
+  resetStats();
+  document.getElementById("game-area").style.display = "block";
+  renderButtons();
+  nextQuestion();
+  document.getElementById("timer").textContent = "";
+}
+
+function startTest(seconds = 60) {
+  mode = "test";
+  hideHistory();
+  resetStats();
+  timeLeft = seconds;
+  document.getElementById("game-area").style.display = "block";
+  renderButtons();
+  nextQuestion();
+  updateTimerText();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerText();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      finishTest();
+    }
+  }, 1000);
+}
+
+function updateTimerText() {
+  document.getElementById("timer").textContent = `剩余时间：${timeLeft} 秒`;
+}
+
+function nextQuestion() {
+  const pos = getRandomPosition();
+  currentAnswer = pos.answer;
+  document.getElementById("question").textContent = pos.questionText;
+  document.getElementById("feedback").textContent = "";
+  document.getElementById("next-btn").style.display = "inline-block";
+}
+
+function checkAnswer(selected) {
+  if (!mode) return;
+  if (selected === currentAnswer) {
+    document.getElementById("feedback").textContent = "✅ 正确！";
+    correctAnswers++;
+  } else {
+    document.getElementById("feedback").textContent = `❌ 错误，正确答案：${currentAnswer}`;
+  }
+  totalQuestions++;
+}
+
+function finishTest() {
+  mode = "";
+  document.getElementById("timer").textContent = "";
+  document.getElementById("note-buttons").innerHTML = "";
+  document.getElementById("next-btn").style.display = "none";
+  document.getElementById("question").textContent = "测试已结束";
+  document.getElementById("feedback").textContent = "";
+
+  const accuracy = totalQuestions ? ((correctAnswers / totalQuestions) * 100).toFixed(1) : "0.0";
+  saveHistory({ date: new Date().toLocaleString(), total: totalQuestions, correct: correctAnswers, accuracy });
+
+  document.getElementById("stats").textContent = `总答题：${totalQuestions} ，正确：${correctAnswers} ，正确率：${accuracy}%`;
+}
+
+function resetStats() {
+  totalQuestions = 0;
+  correctAnswers = 0;
+  document.getElementById("stats").textContent = "";
+}
+
+// 保存成绩到 localStorage
+function saveHistory(record) {
+  let history = JSON.parse(localStorage.getItem("guitar_history") || "[]");
+  history.push(record);
+  history.sort((a,b) => new Date(b.date) - new Date(a.date));
+  localStorage.setItem("guitar_history", JSON.stringify(history));
+}
+
+// 显示/隐藏历史成绩
+function toggleHistory() {
+  const list = document.getElementById("history-list");
+  if (list.style.display === "none" || list.style.display === "") {
+    renderHistory();
+    list.style.display = "block";
+    document.getElementById("game-area").style.display = "none";
+  } else {
+    list.style.display = "none";
+  }
+}
+
+function hideHistory() {
+  document.getElementById("history-list").style.display = "none";
+}
+
+// 渲染历史成绩
+function renderHistory() {
+  let history = JSON.parse(localStorage.getItem("guitar_history") || "[]");
+  const container = document.getElementById("history-list");
+  if (history.length === 0) {
+    container.innerHTML = "<h3>历史成绩</h3><p>暂无历史记录</p>";
+    return;
+  }
+  let html = "<h3>历史成绩（按时间倒序）</h3><ul>";
+  history.forEach(h => {
+    html += `<li>${h.date} - 总数:${h.total}  正确:${h.correct}  正确率:${h.accuracy}%</li>`;
+  });
+  html += "</ul>";
+  container.innerHTML = html;
+}
+</script>
+</body>
+</html>

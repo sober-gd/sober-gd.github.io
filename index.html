@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>Guitar Rookie</title>
 <style>
+  html {
+  overflow-y: scroll; /* 防止滚动条出现/消失时页面抖动 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none;  /* IE 10+ */
+}
+
+html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
 /* ===== 通用 ===== */
 *{box-sizing:border-box}
 body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background:#f7f7f7}
@@ -81,12 +90,12 @@ body{margin:0;font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;background
     注意：URL必须是相对路径或绝对路径，确保能正确加载
 */
 const appData = [
+  {name:'指板记忆',url:'./apps/指板记忆/指板记忆.html', img:'./apps/指板记忆/detail.png'},
+  {name:'和弦组成音练习', url:'./apps/和弦组成音/组成音.html', img:'./apps/和弦组成音/detail.png'},
+  {name:'和弦指法库', url:'./apps/和弦指型合集/和弦指法库.html', img:'./apps/和弦指型合集/detail.png'},
   {name:'chords progression',url:'./apps/chords_progression/chord_progression.html', img:'./apps/chords_progression/detail.png'},
   {name:'random rhythm generator', url:'https://randomrhythmgenerator.com/',img:'./apps/random_rhythm_generator/detail.png'},
   {name:'ear training--musicacademy', url:'https://musicacademy.app/zh/', img:'./apps/ear_training/detail.png'},
-  {name:'Tuner',             url:'./apps/tuner/tuner.html'},
-  {name:'Recorder',          url:'./apps/recorder/recorder.html'},
-  {name:'Drum Machine',      url:'./apps/drum/drum.html'}
 ];
 
 /* === 页面切换 === */
