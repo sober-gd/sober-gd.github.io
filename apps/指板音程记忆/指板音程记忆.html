@@ -2,8 +2,13 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>吉他音程与音名训练</title>
 <style>
+  :root { --max-width: 780px; }
+
+  * { box-sizing: border-box; }
+
   body {
     font-family: sans-serif;
     margin: 0;
@@ -12,22 +17,47 @@
     flex-direction: column;
     align-items: center;
     background: #fafafa;
+    min-width: 320px;
   }
+
   #fretboard {
     position: relative;
-    width: 780px;
-    height: 240px;
-    background: #d2b48c;
+    width: 100%;
+    max-width: var(--max-width);
+    overflow: hidden;
     border-radius: 8px;
     margin-top: 20px;
   }
+
+  #fretboardBg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #d2b48c;
+    border-radius: 8px;
+    z-index: 0;
+  }
+
+  #scaleWrap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 780px;          /* JS 会动态覆盖 */
+    height: 260px;         /* 6×40 + 上下各 20 */
+    transform-origin: top left;
+    z-index: 1;
+  }
+
   .fret-line {
     position: absolute;
     top: 0;
-    bottom: 0;
     width: 2px;
+    height: 100%;          /* 纵向撑满父容器 */
     background: #aaa;
   }
+
   .string-line {
     position: absolute;
     left: 0;
@@ -35,6 +65,7 @@
     height: 2px;
     background: #333;
   }
+
   .note-circle {
     border-radius: 50%;
     width: 30px;
@@ -46,10 +77,11 @@
     color: white;
     font-weight: bold;
     font-size: 12px;
-    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    text-shadow: 1px 1px 1px rgba(0,0,0,.5);
   }
   .root { background: red; z-index: 1; }
   .second { background: blue; z-index: 2; }
+
   #buttons, #noteButtons {
     margin-top: 20px;
     display: flex;
@@ -57,6 +89,7 @@
     gap: 8px;
     justify-content: center;
   }
+
   button {
     padding: 10px 14px;
     border: none;
@@ -64,147 +97,177 @@
     cursor: pointer;
     background: #f1f3f5;
     color: #111;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-    transition: transform .05s ease, background .2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    transition: transform .05s, background .2s;
   }
   button:hover { background: #e9ecef; }
-  button:active { transform: translateY(1px) scale(0.99); }
+  button:active { transform: translateY(1px) scale(.99); }
   .correct { background: #2e7d32 !important; color: white !important; }
-  .wrong { background: #c62828 !important; color: white !important; }
-  .fret-label {
-    position: absolute;
-    top: -20px;
-    font-size: 12px;
-    color: #333;
-  }
+  .wrong   { background: #c62828 !important; color: white !important; }
+
+.fret-label {
+  position: absolute;
+  top: 0 px;          /* 原来是 -20px，改为正数即可 */
+  font-size: 12px;
+  color: #333;
+  z-index: 3;        /* 保险：确保不被其他元素盖住 */
+}
+
   #instructions, #noteInstructions {
     margin-top: 10px;
     font-size: 16px;
+    text-align: center;
   }
+
   .card {
-    width: 780px;
+    width: 100%;
+    max-width: var(--max-width);
     margin-top: 16px;
     background: #fff;
     border-radius: 12px;
     padding: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+    box-shadow: 0 8px 24px rgba(0,0,0,.06);
   }
+
   .card-title {
     font-size: 18px;
     font-weight: 700;
     margin-bottom: 8px;
+    text-align: center;
+  }
+
+  .footer-actions {
+    width: 100%;
+    max-width: var(--max-width);
+    margin-top: 16px;
+    text-align: center;
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 10px; }
+    .card { padding: 12px; }
+    .card-title { font-size: 16px; }
+    #instructions, #noteInstructions { font-size: 14px; }
+    button { padding: 8px 12px; font-size: 14px; }
   }
 </style>
 </head>
 <body>
 <h1>吉他音程与音名训练</h1>
-<div id="fretboard"></div>
-<div class="card">
-	<div class="card-title">题型一：音程判别</div>
-	<div id="instructions">请判断图上两个音的音程，红色为根音，蓝色为目标音。</div>
-	<div id="buttons"></div>
+<div id="fretboard">
+  <div id="fretboardBg"></div>
+  <div id="scaleWrap">
+    <div id="fretContainer"></div>
+  </div>
 </div>
+
 <div class="card">
-	<div class="card-title">题型二：目标音名</div>
-	<div id="noteInstructions">如果根音为 <span id="rootName">X</span>，那么目标音是？</div>
-	<div id="noteButtons"></div>
+  <div class="card-title">题型一：音程判别</div>
+  <div id="instructions">请判断图上两个音的音程，红色为根音，蓝色为目标音。</div>
+  <div id="buttons"></div>
 </div>
-<div class="footer-actions" style="width:780px; margin-top:16px; text-align:center;"><button id="nextBtn">下一题</button></div>
+
+<div class="card">
+  <div class="card-title">题型二：目标音名</div>
+  <div id="noteInstructions">如果根音为 <span id="rootName">X</span>，那么目标音是？</div>
+  <div id="noteButtons"></div>
+</div>
+
+<div class="footer-actions">
+  <button id="nextBtn">下一题</button>
+</div>
 
 <script>
-const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"];
 const intervalNames = ["P1","m2","M2","m3","M3","P4","d5/P4+","P5","m6","M6","m7","M7","P8"];
 let root, second, mode;
-const fretWidth = 60;
-const stringHeight = 40;
 
 function noteAt(string, fret){
   const openNotes = ["E","B","G","D","A","E"];
-  let idx = notes.indexOf(openNotes[string-1]);
-  return notes[(idx + fret) % 12];
+  return notes[(notes.indexOf(openNotes[string-1]) + fret) % 12];
 }
 
 function generateSecond(root){
-  // 生成第二音，根音上下3品，弦1-6；避免与根音同一位置
   const minFret = Math.max(root.fret - 3, 0);
   const maxFret = Math.min(root.fret + 3, 12);
   let secFret, secString;
   do {
     secFret = Math.floor(Math.random() * (maxFret - minFret + 1)) + minFret;
     secString = Math.floor(Math.random() * 6) + 1;
-  } while (
-    secString < 1 || secString > 6 ||
-    secFret < 0 || secFret > 12 ||
-    (secString === root.string && secFret === root.fret)
-  );
+  } while (secString === root.string && secFret === root.fret);
   return { string: secString, fret: secFret, note: noteAt(secString, secFret) };
 }
 
 function generateQuestion(){
   document.getElementById("buttons").innerHTML = "";
-  // 始终为音程训练模式，确保两个音都出现
   mode = "interval";
-
   const string = Math.floor(Math.random()*6)+1;
-  // 确保根音在合理范围内，为第二音留出空间
-  const fret = Math.floor(Math.random()*8) + 2; // 2-9品
-  root = { string, fret, note: noteAt(string,fret) };
-
+  const fret   = Math.floor(Math.random()*8)+2;
+  root   = { string, fret, note: noteAt(string,fret) };
   second = generateSecond(root);
-  // 不在说明里显示具体音名
   document.getElementById("instructions").textContent =
     "音程训练：请判断图上两个音的音程，红色为根音，蓝色为目标音。";
-
   drawFretboard();
   renderButtons();
 }
 
 function drawFretboard(){
-  const fb = document.getElementById("fretboard");
-  fb.innerHTML = "";
+  const fc = document.getElementById("fretContainer");
+  fc.innerHTML = "";
 
+  // 6 根弦
   for(let s=0;s<6;s++){
     const line = document.createElement("div");
     line.className = "string-line";
-    line.style.top = (s*stringHeight + stringHeight/2 -1) + "px";
-    fb.appendChild(line);
+    line.style.top = (s*40 + 20 -1) + "px";
+    fc.appendChild(line);
   }
 
+  // 13 条品丝（0–12）
   for(let f=0;f<=12;f++){
     const line = document.createElement("div");
     line.className = "fret-line";
-    line.style.left = (f*fretWidth) + "px";
-    fb.appendChild(line);
+    line.style.left = (f*60) + "px";
+    fc.appendChild(line);
 
     if(f === 1){
       const label = document.createElement("div");
       label.className = "fret-label";
-      label.style.left = (f*fretWidth + fretWidth/2 - 10) + "px";
+      label.style.left = (f*60 + 30 - 10) + "px";
       label.textContent = "第一品";
-      fb.appendChild(label);
+      fc.appendChild(label);
     }
   }
 
-  // 绘制根音（不显示文字）
-  const c = document.createElement("div");
-  c.className = "note-circle root";
-  c.style.top = ((root.string-1)*stringHeight + stringHeight/2 - 15) + "px";
-  c.style.left = (root.fret*fretWidth + fretWidth/2 - 15) + "px";
-  fb.appendChild(c);
+  // 根音
+  const c1 = document.createElement("div");
+  c1.className = "note-circle root";
+  c1.style.top  = ((root.string-1)*40 + 20 - 15) + "px";
+  c1.style.left = (root.fret*60 + 30 - 15) + "px";
+  fc.appendChild(c1);
 
-  // 绘制第二音（不显示文字）
+  // 目标音
   if(second){
     const c2 = document.createElement("div");
     c2.className = "note-circle second";
-    c2.style.top = ((second.string-1)*stringHeight + stringHeight/2 - 15) + "px";
-    c2.style.left = (second.fret*fretWidth + fretWidth/2 - 15) + "px";
-    fb.appendChild(c2);
+    c2.style.top  = ((second.string-1)*40 + 20 - 15) + "px";
+    c2.style.left = (second.fret*60 + 30 - 15) + "px";
+    fc.appendChild(c2);
   }
+
+  // 等比例缩放
+  const scaleWrap = document.getElementById('scaleWrap');
+  const fretboard = document.getElementById('fretboard');
+  const fullWidth = 13 * 60;  // 13 条品丝 × 60px
+  const available = fretboard.clientWidth;
+  const scale = Math.min(1, available / fullWidth);
+  scaleWrap.style.transform = `scale(${scale})`;
+  scaleWrap.style.width = `${fullWidth}px`;
+  fretboard.style.height = (260 * scale) + 'px';  // 6×40 + 上下留白
 }
 
 function renderButtons(){
   const btns = document.getElementById("buttons");
-  // 只显示音程按钮
   intervalNames.forEach(iv=>{
     const b=document.createElement("button");
     b.textContent=iv;
@@ -251,15 +314,13 @@ function checkNoteAnswer(ans){
   });
 }
 
-// 扩展下一题逻辑，刷新两个题型
-const oldNext = document.getElementById("nextBtn").onclick;
 document.getElementById("nextBtn").onclick = ()=>{
   generateQuestion();
   document.getElementById("rootName").textContent = root.note;
   renderNoteButtons();
-  // 复位交互（确保新一题按钮可用）
   document.querySelectorAll('#buttons button, #noteButtons button').forEach(b=>b.disabled=false);
 };
+
 generateQuestion();
 document.getElementById("rootName").textContent = root.note;
 renderNoteButtons();
