@@ -1,0 +1,227 @@
+/* 音阶跟唱练习 - 小清新亮色 */
+:root {
+  --bg: #f0f7f4;
+  --surface: #ffffff;
+  --surface-hover: #e8f5ef;
+  --border: #c5e1d4;
+  --text: #2d5a45;
+  --text-muted: #5a8a72;
+  --accent: #5ba87a;
+  --accent-hover: #4a9a6a;
+  --playing-bg: #e8f5ef;
+  --playing-border: #5ba87a;
+  --range-bg: #d4ebe0;
+  --range-fill: #5ba87a;
+  --range-thumb: #7bc497;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(45, 90, 69, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 1.75rem;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.scale-list {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.scale-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+  border: 1px solid transparent;
+}
+
+.scale-row:hover {
+  background: var(--surface-hover);
+}
+
+.scale-row.playing {
+  background: var(--playing-bg);
+  border-color: var(--playing-border);
+  box-shadow: 0 0 0 1px var(--playing-border);
+}
+
+.scale-name {
+  flex-shrink: 0;
+  min-width: 3.5rem;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--accent);
+  text-align: left;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.btn {
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-hover);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.1s;
+}
+
+.btn:hover {
+  background: var(--border);
+  border-color: var(--accent);
+  color: var(--accent-hover);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn.playing {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn .icon {
+  display: inline-block;
+  margin-right: 0.25rem;
+  font-size: 0.85em;
+}
+
+/* 进度条容器：用 CSS 变量显示已播放比例 */
+.progress-wrap {
+  flex: 1;
+  min-width: 50px;
+  position: relative;
+  height: 8px;
+  background: var(--range-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--progress, 0%);
+  background: var(--range-fill);
+  border-radius: 4px;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+.progress-range {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+
+input[type="range"].progress-range {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type="range"].progress-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--range-thumb);
+  cursor: pointer;
+  margin-top: -4px;
+}
+
+input[type="range"].progress-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--range-thumb);
+  cursor: pointer;
+  border: none;
+}
+
+/* 备用：传统 range 样式（当不用 progress-wrap 时） */
+input[type="range"].classic-range {
+  flex: 1;
+  min-width: 60px;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--range-bg);
+  border-radius: 4px;
+}
+
+input[type="range"].classic-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--range-thumb);
+  cursor: pointer;
+}
+
+input[type="range"].classic-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--range-thumb);
+  cursor: pointer;
+  border: none;
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 1rem;
+  }
+  .btn {
+    padding: 0.65rem 0.9rem;
+    font-size: 1rem;
+  }
+  .scale-name {
+    min-width: 3.75rem;
+    font-size: 1.1rem;
+  }
+  .scale-row {
+    padding: 0.75rem;
+  }
+}
