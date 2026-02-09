@@ -393,6 +393,8 @@
       return keys[Math.floor(Math.random() * keys.length)];
     }
 
+    const CHORDS_FADE_MS = 500;
+
     function nextProgression() {
       const key = getRandomKey();
       const progressions = data[key];
@@ -404,9 +406,11 @@
         style: selected[2] || "未分类"
       };
       document.getElementById("progression").textContent = key + " 调: " + selected[0];
-      document.getElementById("chords").textContent = current.chords.join(" – ");
-      document.getElementById("chords").classList.remove("visible");
       document.getElementById("styleTag").textContent = current.style;
+      document.getElementById("chords").classList.remove("visible");
+      setTimeout(() => {
+        document.getElementById("chords").textContent = current.chords.join(" – ");
+      }, CHORDS_FADE_MS);
     }
 
     function showChords() {
