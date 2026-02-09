@@ -29,6 +29,10 @@
 
   function stopCurrent() {
     if (currentAudio) {
+      if (currentAudio._progressRafId != null) {
+        cancelAnimationFrame(currentAudio._progressRafId);
+        currentAudio._progressRafId = null;
+      }
       currentAudio.pause();
       currentAudio.currentTime = 0;
       currentAudio = null;
@@ -77,7 +81,9 @@
 
       ["up", "down"].forEach(function (dir) {
         var label = dir === "up" ? "上行" : "下行";
-        var src = BASE + (dir === "up" ? s.up : s.down);
+        var filename = dir === "up" ? s.up : s.down;
+        // 对文件名进行URL编码，特别是处理 # 字符
+        var src = BASE + encodeURIComponent(filename);
         var cell = document.createElement("div");
         cell.className = "cell";
 
@@ -123,6 +129,22 @@
           }
         }
 
+        function progressTick() {
+          if (currentAudio !== audio || audio.paused) {
+            audio._progressRafId = null;
+            return;
+          }
+          updateProgressFromTime();
+          audio._progressRafId = requestAnimationFrame(progressTick);
+        }
+
+        function stopProgressLoop() {
+          if (audio._progressRafId != null) {
+            cancelAnimationFrame(audio._progressRafId);
+            audio._progressRafId = null;
+          }
+        }
+
         audio.addEventListener("loadedmetadata", function () {
           duration = audio.duration;
           if (isFinite(duration) && !rangeDragging) updateProgressFromTime();
@@ -130,8 +152,8 @@
         audio.addEventListener("durationchange", function () {
           if (isFinite(audio.duration)) duration = audio.duration;
         });
-        audio.addEventListener("timeupdate", updateProgressFromTime);
         audio.addEventListener("ended", function () {
+          stopProgressLoop();
           duration = NaN;
           setProgress(0, range, progressWrap);
           btn.classList.remove("playing");
@@ -172,6 +194,7 @@
           if (currentAudio === audio) {
             if (audio.paused) {
               audio.play();
+              progressTick();
               btn.classList.add("playing");
               btn.innerHTML = '<span class="icon">⏸</span>' + label;
               row.classList.add("playing");
@@ -180,6 +203,7 @@
               currentRange = range;
               currentProgressWrap = progressWrap;
             } else {
+              stopProgressLoop();
               audio.pause();
               btn.classList.remove("playing");
               btn.innerHTML = '<span class="icon">▶</span>' + label;
@@ -201,6 +225,7 @@
           btn.classList.add("playing");
           btn.innerHTML = '<span class="icon">⏸</span>' + label;
           audio.play();
+          progressTick();
         });
       });
 

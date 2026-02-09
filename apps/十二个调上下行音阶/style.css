@@ -139,8 +139,8 @@ body {
   width: var(--progress, 0%);
   background: var(--range-fill);
   border-radius: 4px;
-  transition: width 0.1s linear;
   pointer-events: none;
+  will-change: width;
 }
 
 .progress-range {
